@@ -79,7 +79,9 @@ class Fork {
     private int orig_y;
     private int x;
     private int y;
-
+    public boolean request = false;
+    public boolean clean = false;
+    public boolean release = false;
     // Constructor.
     // cx and cy indicate coordinates of center.
     // Note that fillOval method expects coordinates of upper left corner
@@ -92,6 +94,7 @@ class Fork {
         x = cx;
         y = cy;
     }
+
 
     public void reset() {
         clear();
@@ -116,7 +119,7 @@ class Fork {
     // render self
     //
     public void draw(Graphics g) {
-        g.setColor(Color.black);
+        g.setColor(clean ? Color.black : Color.orange);
         g.fillOval(x-XSIZE/2, y-YSIZE/2, XSIZE, YSIZE);
     }
     // erase self
@@ -147,6 +150,8 @@ class Philosopher extends Thread {
     private Fork right_fork;
     private Random prn;
     private Color color;
+    public boolean hasForkLeft = true;
+    public boolean hasForkRight = false;
 
     // Constructor.
     // cx and cy indicate coordinates of center
@@ -168,8 +173,13 @@ class Philosopher extends Thread {
     // start method of Thread calls run; you don't
     //
     public void run() {
+        boolean first_run = true;
         for (;;) {
             try {
+                if (first_run && c.gate()) {
+                    first_run = false;
+                    left_fork.acquire(x, y);
+                }
                 if (c.gate()) delay(EAT_TIME/2.0);
                 think();
                 if (c.gate()) delay(THINK_TIME/2.0);
@@ -178,6 +188,7 @@ class Philosopher extends Thread {
                 eat();
             } catch(ResetException e) { 
                 color = THINK_COLOR;
+                first_run = true;
                 t.repaint();
             }
         }
@@ -226,18 +237,67 @@ class Philosopher extends Thread {
         color = WAIT_COLOR;
         t.repaint();
         delay(FUMBLE_TIME);
-        left_fork.acquire(x, y);
+        if (!hasForkLeft) {
+            left_fork.request = true;
+        }
         yield();    // you aren't allowed to remove this
-        right_fork.acquire(x, y);
+        if (!hasForkRight) {
+            right_fork.request = true;
+        }
+        while(!hasForkLeft || !hasForkRight) {
+                // fork has been release to us- grab it
+            if (!hasForkRight && right_fork.release) {
+                right_fork.acquire(x,y);
+                hasForkRight = true;
+                right_fork.release = false;
+            }
+                // fork has been release to us- grab it
+            if (!hasForkLeft && left_fork.release){
+                left_fork.acquire(x,y);
+                hasForkLeft = true;
+                left_fork.release = false;
+            }
+                //someone else wants the fork and it's dirty: clean and give
+            if (hasForkRight && !right_fork.clean && right_fork.request){
+                right_fork.clean = true;
+                right_fork.release();
+                hasForkRight = false;
+                right_fork.request = false;
+                right_fork.release = true;
+            }
+                //someone else wants the fork and it's dirty: clean and give
+            if(hasForkLeft && !left_fork.clean && left_fork.request){
+                left_fork.clean = true;
+                left_fork.release();
+                hasForkLeft = false;
+                left_fork.request = false;
+                left_fork.release = true;
+            }
+            c.gate();
+        }
+            System.out.println("startin my dinner");
     }
 
     private void eat() throws ResetException {
         color = EAT_COLOR;
         t.repaint();
         delay(EAT_TIME);
-        left_fork.release();
+        left_fork.clean = false;
+        right_fork.clean = false;
+
+        if (left_fork.request) {
+            left_fork.clean = true;
+            left_fork.request = false;
+            left_fork.release = true;
+            hasForkLeft = false;
+        }
         yield();    // you aren't allowed to remove this
-        right_fork.release();
+        if (right_fork.request) {
+            right_fork.clean = true;
+            right_fork.request = false;
+            right_fork.release = true;
+            hasForkRight = false;
+        }
     }
 }
 
