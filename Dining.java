@@ -154,9 +154,9 @@ class Philosopher extends Thread {
     private Fork right_fork;
     private Random prn;
     private Color color;
-    public boolean hasForkLeft = true;
-    public boolean hasForkRight = false;
     int id;
+    public boolean hasForkLeft = false;
+    public boolean hasForkRight = true;
 
     // Constructor.
     // cx and cy indicate coordinates of center
@@ -189,7 +189,14 @@ class Philosopher extends Thread {
             try {
                 if (first_run && c.gate()) {
                     first_run = false;
-                    left_fork.acquire(x, y);
+                    if(hasForkLeft) {
+                        System.out.println("phil "+id+" getting left");
+                        acquire(false);
+                    }
+                    if(hasForkRight){
+                        System.out.println("phil "+id+" getting right");
+                        acquire(true);
+                    }
                 }
                 if (c.gate()) delay(EAT_TIME/2.0);
                 think();
