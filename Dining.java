@@ -204,7 +204,7 @@ class Philosopher extends Thread {
                 hunger();
                 if (c.gate()) delay(FUMBLE_TIME/2.0);
                 eat();
-            } catch(ResetException e) { 
+            } catch(ResetException e) {
                 color = THINK_COLOR;
                 first_run = true;
                 t.repaint();
@@ -249,16 +249,33 @@ class Philosopher extends Thread {
     }
 
     public void acquire(boolean isRight) {
-       if(isRight) {
-           hasForkRight = true;
-           right_fork.requestL = false;
-           right_fork.release2L = false;
-       }
-       else {
-           hasForkLeft = true;
-           left_fork.requestR = false;
-           left_fork.release2R = false;
-       }
+        if(isRight) {
+            hasForkRight = true;
+            right_fork.requestL = false;
+            right_fork.release2L = false;
+            right_fork.acquire(x,y);
+        }
+        else {
+            hasForkLeft = true;
+            left_fork.requestR = false;
+            left_fork.release2R = false;
+            left_fork.acquire(x,y);
+        }
+    }
+
+    public void release(boolean isRight) {
+        if(isRight) {
+            hasForkRight = true;
+            right_fork.requestL = false;
+            right_fork.release2L = false;
+            right_fork.acquire(x,y);
+        }
+        else {
+            hasForkLeft = true;
+            left_fork.requestR = false;
+            left_fork.release2R = false;
+            left_fork.acquire(x,y);
+        }
     }
 
     private void think() throws ResetException {
@@ -268,6 +285,8 @@ class Philosopher extends Thread {
     }
 
     private void hunger() throws ResetException {
+        System.out.println("philosopher "+id+"is hungry");
+        left_fork.clean = true;
         color = WAIT_COLOR;
         t.repaint();
         delay(FUMBLE_TIME);
@@ -280,13 +299,11 @@ class Philosopher extends Thread {
         }
         while(!hasForkLeft || !hasForkRight) {
                 // fork has been release to us- grab it
-            if (!hasForkRight && right_fork.release2L && right_fork.clean) {
-                right_fork.acquire(x,y);
+            if (!hasForkRight && right_fork.release2L){// && right_fork.clean) {
                 acquire(true);
             }
                 // fork has been release to us- grab it
-            if (!hasForkLeft && left_fork.release2R && left_fork.clean){
-                left_fork.acquire(x,y);
+            if (!hasForkLeft && left_fork.release2R){ //&& left_fork.clean){
                 acquire(false);
             }
                 //someone else wants the fork and it's dirty: clean and give
@@ -322,9 +339,17 @@ class Philosopher extends Thread {
             left_fork.release2L = true;
             hasForkLeft = false;
         }
+        else {
+            left_fork.release2L = true;
+            hasForkLeft = false;
+        }
         yield();    // you aren't allowed to remove this
         if (right_fork.requestR) {
             right_fork.clean = true;
+            right_fork.release2R = true;
+            hasForkRight = false;
+        }
+        else {
             right_fork.release2R = true;
             hasForkRight = false;
         }
