@@ -141,6 +141,8 @@ class Philosopher extends Thread {
     private static final double FUMBLE_TIME = 2.0;
         // time between becoming hungry and grabbing first fork
     private static final double EAT_TIME = 3.0;
+    private static final Font LABEL_FONT = new Font("Mono", Font.PLAIN, 24);
+    private static final Color LABEL_COLOR = Color.white;
 
     private Coordinator c;
     private Table t;
@@ -154,6 +156,7 @@ class Philosopher extends Thread {
     private Color color;
     public boolean hasForkLeft = true;
     public boolean hasForkRight = false;
+    int id;
 
     // Constructor.
     // cx and cy indicate coordinates of center
@@ -161,7 +164,7 @@ class Philosopher extends Thread {
     // of bounding box instead.
     //
     public Philosopher(Table T, int cx, int cy,
-                       Fork lf, Fork rf, Coordinator C) {
+                       Fork lf, Fork rf, Coordinator C, int id) {
         t = T;
         x = cx;
         y = cy;
@@ -170,6 +173,12 @@ class Philosopher extends Thread {
         c = C;
         prn = new Random();
         color = THINK_COLOR;
+        this.id = id;
+        if(id == 0 || id ==  3)
+            hasForkLeft = true;
+        if(id == 4 ||id == 2)
+            hasForkRight = false;
+        System.out.println("phil "+id+" hand status- "+hasForkLeft+" "+hasForkRight);
     }
 
     // start method of Thread calls run; you don't
@@ -201,6 +210,9 @@ class Philosopher extends Thread {
     public void draw(Graphics g) {
         g.setColor(color);
         g.fillOval(x-XSIZE/2, y-YSIZE/2, XSIZE, YSIZE);
+        g.setFont(LABEL_FONT);
+        g.setColor(LABEL_COLOR);
+        g.drawString(""+this.id, x-XSIZE/7, y+YSIZE/5);
     }
 
     // sleep for secs +- FUDGE (%) seconds
@@ -350,6 +362,11 @@ class Table extends JPanel {
     // operations in the surrounding window system.
     //
     public void paintComponent(Graphics g) {
+        // turn on anti-aliasing
+        Graphics2D g2 = (Graphics2D)g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+            RenderingHints.VALUE_ANTIALIAS_ON);
+
         super.paintComponent(g);
 
         for (int i = 0; i < NUM_PHILS; i++) {
@@ -384,7 +401,8 @@ class Table extends JPanel {
                 (int) (CANVAS_SIZE/2.0 - CANVAS_SIZE/3.0 * Math.sin(angle)),
                 forks[i],
                 forks[(i+1) % NUM_PHILS],
-                c);
+                c,
+                i);
             philosophers[i].start();
         }
     }
