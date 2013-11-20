@@ -79,9 +79,11 @@ class Fork {
     private int orig_y;
     private int x;
     private int y;
-    public boolean request = false;
+    public boolean requestR = false;
+    public boolean requestL = false;
     public boolean clean = false;
-    public boolean release = false;
+    public boolean release2L = false;
+    public boolean release2R = false;
     // Constructor.
     // cx and cy indicate coordinates of center.
     // Note that fillOval method expects coordinates of upper left corner
@@ -227,6 +229,19 @@ class Philosopher extends Thread {
         }
     }
 
+    public void acquire(boolean isRight) {
+       if(isRight) {
+           hasForkRight = true;
+           right_fork.requestL = false;
+           right_fork.release2L = false;
+       }
+       else {
+           hasForkLeft = true;
+           left_fork.requestR = false;
+           left_fork.release2R = false;
+       }
+    }
+
     private void think() throws ResetException {
         color = THINK_COLOR;
         t.repaint();
@@ -238,40 +253,38 @@ class Philosopher extends Thread {
         t.repaint();
         delay(FUMBLE_TIME);
         if (!hasForkLeft) {
-            left_fork.request = true;
+            left_fork.requestR = true;
         }
         yield();    // you aren't allowed to remove this
         if (!hasForkRight) {
-            right_fork.request = true;
+            right_fork.requestL = true;
         }
         while(!hasForkLeft || !hasForkRight) {
                 // fork has been release to us- grab it
-            if (!hasForkRight && right_fork.release) {
+            if (!hasForkRight && right_fork.release2L && right_fork.clean) {
                 right_fork.acquire(x,y);
-                hasForkRight = true;
-                right_fork.release = false;
+                acquire(true);
             }
                 // fork has been release to us- grab it
-            if (!hasForkLeft && left_fork.release){
+            if (!hasForkLeft && left_fork.release2R && left_fork.clean){
                 left_fork.acquire(x,y);
-                hasForkLeft = true;
-                left_fork.release = false;
+                acquire(false);
             }
                 //someone else wants the fork and it's dirty: clean and give
-            if (hasForkRight && !right_fork.clean && right_fork.request){
+            if (hasForkRight && !right_fork.clean && right_fork.requestR){
                 right_fork.clean = true;
                 right_fork.release();
                 hasForkRight = false;
-                right_fork.request = false;
-                right_fork.release = true;
+                right_fork.release2R = true;
+                right_fork.requestL = true;
             }
                 //someone else wants the fork and it's dirty: clean and give
-            if(hasForkLeft && !left_fork.clean && left_fork.request){
+            if(hasForkLeft && !left_fork.clean && left_fork.requestL){
                 left_fork.clean = true;
                 left_fork.release();
                 hasForkLeft = false;
-                left_fork.request = false;
-                left_fork.release = true;
+                left_fork.release2L = true;
+                left_fork.requestR = true;
             }
             c.gate();
         }
@@ -285,17 +298,15 @@ class Philosopher extends Thread {
         left_fork.clean = false;
         right_fork.clean = false;
 
-        if (left_fork.request) {
+        if (left_fork.requestL) {
             left_fork.clean = true;
-            left_fork.request = false;
-            left_fork.release = true;
+            left_fork.release2L = true;
             hasForkLeft = false;
         }
         yield();    // you aren't allowed to remove this
-        if (right_fork.request) {
+        if (right_fork.requestR) {
             right_fork.clean = true;
-            right_fork.request = false;
-            right_fork.release = true;
+            right_fork.release2R = true;
             hasForkRight = false;
         }
     }
