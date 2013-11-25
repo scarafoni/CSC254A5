@@ -102,6 +102,11 @@ class Fork {
         clear();
         x = orig_x;
         y = orig_y;
+				clean = false;
+				requestR = false;
+				requestL = false;
+				release2L = false;
+				release2R = false;
         t.repaint();
     }
 
@@ -174,12 +179,18 @@ class Philosopher extends Thread {
         prn = new Random();
         color = THINK_COLOR;
         this.id = id;
-        if(id == 0 || id ==  3)
-            hasForkLeft = true;
-        if(id == 4 ||id == 2)
-            hasForkRight = false;
-        System.out.println("phil "+id+" hand status- "+hasForkLeft+" "+hasForkRight);
+				reset();
+        //System.out.println("phil "+id+" hand status- "+hasForkLeft+" "+hasForkRight);
     }
+
+		public void reset() {
+			hasForkLeft = false;
+			hasForkRight = true;
+			if(id == 0 || id ==  3)
+				hasForkLeft = true;
+			if(id == 4 ||id == 2)
+				hasForkRight = false;
+		}
 
     // start method of Thread calls run; you don't
     //
@@ -190,11 +201,11 @@ class Philosopher extends Thread {
                 if (first_run && c.gate()) {
                     first_run = false;
                     if(hasForkLeft) {
-                        System.out.println("phil "+id+" getting left");
+                        //System.out.println("phil "+id+" getting left");
                         acquire(false);
                     }
                     if(hasForkRight){
-                        System.out.println("phil "+id+" getting right");
+                        //System.out.println("phil "+id+" getting right");
                         acquire(true);
                     }
                 }
@@ -206,8 +217,12 @@ class Philosopher extends Thread {
                 eat();
             } catch(ResetException e) {
                 color = THINK_COLOR;
+								System.out.println("resettinag- "+id);
                 first_run = true;
                 t.repaint();
+								reset();
+								left_fork.reset();
+								right_fork.reset();
             }
         }
     }
@@ -285,11 +300,12 @@ class Philosopher extends Thread {
     }
 
     private void hunger() throws ResetException {
-        System.out.println("philosopher "+id+"is hungry");
+        //System.out.println("philosopher "+id+"is hungry");
         left_fork.clean = true;
-        color = WAIT_COLOR;
+        color = Color.yellow;//WAIT_COLOR;
         t.repaint();
         delay(FUMBLE_TIME);
+				color = WAIT_COLOR;
         if (!hasForkLeft) {
             left_fork.requestR = true;
         }
@@ -297,6 +313,7 @@ class Philosopher extends Thread {
         if (!hasForkRight) {
             right_fork.requestL = true;
         }
+        c.gate();
         while(!hasForkLeft || !hasForkRight) {
                 // fork has been release to us- grab it
             if (!hasForkRight && right_fork.release2L){// && right_fork.clean) {
@@ -322,9 +339,9 @@ class Philosopher extends Thread {
                 left_fork.release2L = true;
                 left_fork.requestR = true;
             }
-            c.gate();
+						c.gate();
         }
-            System.out.println("startin my dinner");
+            //System.out.println("startin my dinner");
     }
 
     private void eat() throws ResetException {
@@ -343,7 +360,7 @@ class Philosopher extends Thread {
             left_fork.release2L = true;
             hasForkLeft = false;
         }
-        yield();    // you aren't allowed to remove this
+				yield();    // you aren't allowed to remove this
         if (right_fork.requestR) {
             right_fork.clean = true;
             right_fork.release2R = true;
