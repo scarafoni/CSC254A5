@@ -137,14 +137,64 @@ class Fork {
         g.fillOval(x-XSIZE/2, y-YSIZE/2, XSIZE, YSIZE);
     }
 }
+class BookKeeper extends TimerTask {
+	public float optimalCount = 0;
+	public float unoptimalCount = 0;
+	//public int halfOptimalCount = 0;
+	public float[] eatCount;
+	public float sampleNum = 0;
+
+	public Philosopher[] phils;
+
+	public BookKeeper(Philosopher[] phils) {
+		this.phils = phils;
+		eatCount = new float[5];
+	}
+
+	public void run() {
+		if(sampleNum > 10000)
+		{System.out.println("ping");return;}
+		sampleNum++;
+		int eatCountNow = 0;
+		boolean notOpt = false;
+		
+		for(int i = 0; i < phils.length; i++) {
+			if (phils[i].isEating()) {
+				eatCountNow++;
+				eatCount[i]++;
+				}
+		}
+		for(int i = 0; i < phils.length; i++) {
+			//if one hungry, not eating, not next to eater and not 2 other eaters then not optimal
+			Philosopher prev = phils[(i+1)%5];
+			Philosopher next = phils[(i+4)%5];
+			if(phils[i].isHungry() && !phils[i].isEating() && !(prev.isEating() || next.isEating()) && eatCountNow != 2) {
+				unoptimalCount++;
+				notOpt = true;
+				break;
+			}
+		}
+		if(!notOpt)
+			optimalCount++;
+	}
+	public void printResults() {
+		System.out.println("samples- "+sampleNum);
+		System.out.println("agregate eating- "+eatCount[0]+" "+eatCount[1]+" "+eatCount[2]+" "+eatCount[3]+" "+eatCount[4]);
+		System.out.println("agregate eating(normalized)- "+eatCount[0]/sampleNum+" "+eatCount[1]/sampleNum+" "+eatCount[2]/sampleNum+" "+eatCount[3]/sampleNum+" "+eatCount[4]/sampleNum);
+		System.out.println("optimal- "+optimalCount);
+		System.out.println("unoptimal- "+unoptimalCount);
+		System.out.println("percentOpt = "+optimalCount /sampleNum * 100);
+	}
+}
 
 class Philosopher extends Thread {
     private static final Color THINK_COLOR = Color.blue;
     private static final Color WAIT_COLOR = Color.red;
     private static final Color EAT_COLOR = Color.green;
+    private static final Color FUMBLE_COLOR = Color.yellow;
     private static final double THINK_TIME = 4.0;
     private static final double FUMBLE_TIME = 2.0;
-        // time between becoming hungry and grabbing first fork
+    // time between becoming hungry and grabbing first fork
     private static final double EAT_TIME = 3.0;
     private static final Font LABEL_FONT = new Font("Mono", Font.PLAIN, 24);
     private static final Color LABEL_COLOR = Color.white;
@@ -183,6 +233,11 @@ class Philosopher extends Thread {
         //System.out.println("phil "+id+" hand status- "+hasForkLeft+" "+hasForkRight);
     }
 
+		public boolean isHungry()
+		{return color == WAIT_COLOR;}
+		public boolean isEating() 
+		{return color == EAT_COLOR;}
+
 		public void reset() {
 			hasForkLeft = false;
 			hasForkRight = true;
@@ -217,7 +272,6 @@ class Philosopher extends Thread {
                 eat();
             } catch(ResetException e) {
                 color = THINK_COLOR;
-								System.out.println("resettinag- "+id);
                 first_run = true;
                 t.repaint();
 								reset();
@@ -302,7 +356,7 @@ class Philosopher extends Thread {
     private void hunger() throws ResetException {
         //System.out.println("philosopher "+id+"is hungry");
         left_fork.clean = true;
-        color = Color.yellow;//WAIT_COLOR;
+        color = FUMBLE_COLOR;//WAIT_COLOR;
         t.repaint();
         delay(FUMBLE_TIME);
 				color = WAIT_COLOR;
@@ -382,6 +436,8 @@ class Table extends JPanel {
     private final Coordinator c;
     private Fork[] forks;
     private Philosopher[] philosophers;
+		private BookKeeper booky;
+		private java.util.Timer timer;
 
     public void pause() {
         c.pause();
@@ -389,6 +445,7 @@ class Table extends JPanel {
         for (int i = 0; i < NUM_PHILS; i++) {
             philosophers[i].interrupt();
         }
+				timer.cancel();
     }
 
     // Called by the UI when it wants to start over.
@@ -402,6 +459,8 @@ class Table extends JPanel {
         for (int i = 0; i < NUM_PHILS; i++) {
             forks[i].reset();
         }
+				timer.cancel();
+				booky.printResults();
     }
 
     // The following method is called automatically by the graphics
@@ -454,6 +513,9 @@ class Table extends JPanel {
                 i);
             philosophers[i].start();
         }
+				timer = new java.util.Timer();
+				booky = new BookKeeper(philosophers);
+				timer.scheduleAtFixedRate(booky,10,10);
     }
 }
 
