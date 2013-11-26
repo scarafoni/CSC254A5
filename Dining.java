@@ -156,7 +156,7 @@ class BookKeeper extends TimerTask {
 	}
 
 	public void run() {
-		if(sampleNum > 100)
+		if(sampleNum > 10000)
 		{System.out.println("ping");return;}
 		sampleNum++;
 		int eatCountNow = 0;
@@ -520,9 +520,10 @@ class Table extends JPanel {
                 forks[(i+1) % NUM_PHILS],
                 c,
                 i);
-            philosophers[i].start();
-						timer = new java.util.Timer();
-						booky = new BookKeeper(philosophers);
+						philosophers[i].start();
+				}
+				timer = new java.util.Timer();
+				booky = new BookKeeper(philosophers);
 			}
 
 	public void startTests() {
@@ -541,6 +542,8 @@ class ResetException extends Exception { };
 class Coordinator {
     public enum State { PAUSED, RUNNING, RESET }
     private State state = State.PAUSED;
+		private BookKeeper booky;
+		private java.util.Timer timer;
 
     public synchronized boolean isPaused() {
         return (state == State.PAUSED);
@@ -618,6 +621,7 @@ class UI extends JPanel {
         runButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 c.resume();
+								t.startTests();
                 root.setDefaultButton(pauseButton);
             }
         });
