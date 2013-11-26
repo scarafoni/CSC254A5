@@ -36,13 +36,14 @@ import java.lang.Thread.*;
 //      Manages graphical layout and button presses.
 
 public class Dining extends JApplet {
+		static boolean runTests = false;
     private static final int CANVAS_SIZE = 360;
         // pixels in each direction;
         // needs to agree with size in dining.html
 
     private void start(final RootPaneContainer pane, final boolean isApplet) {
         final Coordinator c = new Coordinator();
-        final Table t = new Table(c, CANVAS_SIZE);
+        final Table t = new Table(c, CANVAS_SIZE,runTests);
         // arrange to call graphical setup from GUI thread
         try {
             SwingUtilities.invokeAndWait(new Runnable() {
@@ -64,6 +65,9 @@ public class Dining extends JApplet {
     public static void main(String[] args) {
         JFrame f = new JFrame("Dining");
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+				if(args.length > 0 && args[0].equals("-t")){
+					runTests = true;
+				}
         Dining me = new Dining();
         me.start(f, false);
         f.pack();            // calculate size of frame
@@ -152,7 +156,7 @@ class BookKeeper extends TimerTask {
 	}
 
 	public void run() {
-		if(sampleNum > 10000)
+		if(sampleNum > 100)
 		{System.out.println("ping");return;}
 		sampleNum++;
 		int eatCountNow = 0;
@@ -438,6 +442,7 @@ class Table extends JPanel {
     private Philosopher[] philosophers;
 		private BookKeeper booky;
 		private java.util.Timer timer;
+		private boolean runTests = false;
 
     public void pause() {
         c.pause();
@@ -445,7 +450,8 @@ class Table extends JPanel {
         for (int i = 0; i < NUM_PHILS; i++) {
             philosophers[i].interrupt();
         }
-				timer.cancel();
+				if(runTests)
+					timer.cancel();
     }
 
     // Called by the UI when it wants to start over.
@@ -459,8 +465,10 @@ class Table extends JPanel {
         for (int i = 0; i < NUM_PHILS; i++) {
             forks[i].reset();
         }
-				timer.cancel();
-				booky.printResults();
+				if(runTests) {
+					timer.cancel();
+					booky.printResults();
+				}
     }
 
     // The following method is called automatically by the graphics
@@ -490,12 +498,13 @@ class Table extends JPanel {
     // Note that angles are measured in radians, not degrees.
     // The origin is the upper left corner of the frame.
     //
-    public Table(Coordinator C, int CANVAS_SIZE) {    // constructor
+    public Table(Coordinator C, int CANVAS_SIZE,boolean runt) {    // constructor
         c = C;
         forks = new Fork[NUM_PHILS];
         philosophers = new Philosopher[NUM_PHILS];
         setPreferredSize(new Dimension(CANVAS_SIZE, CANVAS_SIZE));
-
+				runTests = runt;
+				System.out.println("runtests in table is- "+runt);
         for (int i = 0; i < NUM_PHILS; i++) {
             double angle = Math.PI/2 + 2*Math.PI/NUM_PHILS*(i-0.5);
             forks[i] = new Fork(this,
@@ -512,10 +521,14 @@ class Table extends JPanel {
                 c,
                 i);
             philosophers[i].start();
-        }
-				timer = new java.util.Timer();
-				booky = new BookKeeper(philosophers);
-				timer.scheduleAtFixedRate(booky,10,10);
+						timer = new java.util.Timer();
+						booky = new BookKeeper(philosophers);
+			}
+
+	public void startTests() {
+				if(runTests) {
+					timer.scheduleAtFixedRate(booky,10,10);
+				}
     }
 }
 
