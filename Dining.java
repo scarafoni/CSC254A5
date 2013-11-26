@@ -147,17 +147,24 @@ class BookKeeper extends TimerTask {
 	//public int halfOptimalCount = 0;
 	public float[] eatCount;
 	public float sampleNum = 0;
-
+	public boolean pinged = false;
 	public Philosopher[] phils;
 
 	public BookKeeper(Philosopher[] phils) {
 		this.phils = phils;
 		eatCount = new float[5];
+		pinged = false;
+		sampleNum = 0;
+		optimalCount = 0;
+		unoptimalCount = 0;
 	}
 
 	public void run() {
-		if(sampleNum > 10000)
-		{System.out.println("ping");return;}
+		if(sampleNum >= 1000){
+			if(!pinged) System.out.println("ping");
+			pinged = true;
+			return;
+		}
 		sampleNum++;
 		int eatCountNow = 0;
 		boolean notOpt = false;
@@ -450,8 +457,11 @@ class Table extends JPanel {
         for (int i = 0; i < NUM_PHILS; i++) {
             philosophers[i].interrupt();
         }
-				if(runTests)
+				if(runTests) {
 					timer.cancel();
+					timer = new java.util.Timer();
+					booky = new BookKeeper(philosophers);
+				}
     }
 
     // Called by the UI when it wants to start over.
@@ -468,6 +478,8 @@ class Table extends JPanel {
 				if(runTests) {
 					timer.cancel();
 					booky.printResults();
+					timer = new java.util.Timer();
+					booky = new BookKeeper(philosophers);
 				}
     }
 
